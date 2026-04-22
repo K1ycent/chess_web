@@ -1,3 +1,4 @@
+import os
 import uuid
 from typing import Dict, List, Optional
 
@@ -36,8 +37,6 @@ async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
     global waiting_player, rooms
 
-    player_room_id = None
-
     try:
         while True:
             data = await ws.receive_json()
@@ -66,12 +65,12 @@ async def websocket_endpoint(ws: WebSocket):
                             })
 
     except WebSocketDisconnect:
-        # Clean up if player disconnects
+        global waiting_player, rooms
         if waiting_player and waiting_player.get("ws") is ws:
             waiting_player = None
 
         for room_id, players in list(rooms.items()):
-            for p in players:
+            for p in list(players):
                 if p["ws"] is ws:
                     players.remove(p)
             if not players:
@@ -79,11 +78,6 @@ async def websocket_endpoint(ws: WebSocket):
 
 
 async def handle_matchmaking(ws: WebSocket, username: str):
-    """
-    Public matchmaking with usernames:
-    - If no one is waiting → this player waits.
-    - If someone is waiting → pair them, send both usernames + colors.
-    """
     global waiting_player, rooms
 
     if waiting_player is None:
@@ -120,4 +114,5 @@ async def handle_matchmaking(ws: WebSocket, username: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port)
