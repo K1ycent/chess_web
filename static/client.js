@@ -12,7 +12,7 @@ window.addEventListener("load", () => {
 });
 
 function connectWebSocket(callback) {
-  ws = new WebSocket("ws://localhost:8000/ws");
+  ws = new WebSocket("wss://chess-web-fozb.onrender.com/ws");
 
   ws.onopen = () => {
     console.log("WS connected");
