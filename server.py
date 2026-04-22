@@ -34,8 +34,8 @@ async def send_json_safe(ws: WebSocket, data: dict):
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
-    await ws.accept()
     global waiting_player, rooms
+    await ws.accept()
 
     try:
         while True:
@@ -65,7 +65,7 @@ async def websocket_endpoint(ws: WebSocket):
                             })
 
     except WebSocketDisconnect:
-        global waiting_player, rooms
+        # Clean up if player disconnects
         if waiting_player and waiting_player.get("ws") is ws:
             waiting_player = None
 
@@ -78,6 +78,11 @@ async def websocket_endpoint(ws: WebSocket):
 
 
 async def handle_matchmaking(ws: WebSocket, username: str):
+    """
+    Public matchmaking with usernames:
+    - If no one is waiting → this player waits.
+    - If someone is waiting → pair them, send both usernames + colors.
+    """
     global waiting_player, rooms
 
     if waiting_player is None:
@@ -112,7 +117,7 @@ async def handle_matchmaking(ws: WebSocket, username: str):
         "opponent_username": white_player["username"],
     })
 
+
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run("server:app", host="0.0.0.0", port=port)
