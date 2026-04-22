@@ -148,8 +148,7 @@
   }
 
   function connectWS() {
-    ws = new WebSocket("ws://localhost:8000/ws");
-
+   ws = new WebSocket("wss://chess-web-fozb.onrender.com/ws");
     ws.onopen = () => {
       console.log("Game WS connected");
     };
