@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Public Chess - Game</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #container {
+      display: flex;
+      gap: 20px;
+    }
+    #board {
+      width: 480px;
+      height: 480px;
+    }
+    #info {
+      min-width: 200px;
+    }
+    #players {
+      margin-bottom: 20px;
+    }
+    #status {
+      margin-top: 10px;
+    }
+  </style>
+
+  <!-- chessboard.js CSS -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css"
+        integrity="sha512-5pQnH3UX0DpD6/COM24kTx5cDIeEJD7BqXc9E+u6KDAdAm8YGtS+wGGyRyvE4s46HoPazTA/gkGEXUXMaLL9xA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div id="container">
+  <div id="board"></div>
+  <div id="info">
+    <div id="players">
+      <div><strong>You:</strong> <span id="youName"></span> (<span id="youColor"></span>)</div>
+      <div><strong>Opponent:</strong> <span id="oppName"></span></div>
+    </div>
+    <div id="status"></div>
+  </div>
+</div>
+
+<!-- chess.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"
+        integrity="sha512-8w7P3cu6UytzszbmWzxubUoil58x2oyS9MhUlCT3VkOITkkpFmS6r30YIOCwRvDDDeWGPAHDq6cHruM3aMc2mQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- chessboard.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"
+        integrity="sha512-2YMBX1IzBgE4c3OJbGdv8ImZ/Sc7VcRbP5t6dv3Vv4Y20N6l04e6MN2eUVx/FuWRzE7dHGnvmhjYQdkWXNoKGw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+  // Read query params: room_id, color, you, opp
+  const params = new URLSearchParams(window.location.search);
+  const roomId = params.get("room_id");
+  const myColor = params.get("color");
+  const myName = params.get("you");
+  const oppName = params.get("opp");
+
+  document.getElementById("youName").textContent = myName || "You";
+  document.getElementById("youColor").textContent = myColor || "?";
+  document.getElementById("oppName").textContent = oppName || "Opponent";
+
+  const statusEl = document.getElementById("status");
+
+  const game = new Chess();
+
+  let board = null;
+  let ws = null;
+
+  function onDragStart(source, piece, position, orientation) {
+    if (game.game_over()) return false;
+    if ((myColor === "white" && piece.search(/^b/) !== -1) ||
+        (myColor === "black" && piece.search(/^w/) !== -1)) {
+      return false;
+    }
+    if ((myColor === "white" && game.turn() !== "w") ||
+        (myColor === "black" && game.turn() !== "b")) {
+      return false;
+    }
+  }
+
+  function onDrop(source, target) {
+    const move = game.move({
+      from: source,
+      to: target,
+      promotion: "q"
+    });
+
+    if (move === null) return "snapback";
+
+    updateStatus();
+
+    if (ws && roomId) {
+      ws.send(JSON.stringify({
+        type: "move",
+        room_id: roomId,
+        move: move
+      }));
+    }
+  }
+
+  function onSnapEnd() {
+    board.position(game.fen());
+  }
+
+  function updateStatus() {
+    let status = "";
+
+    let moveColor = (game.turn() === "w") ? "White" : "Black";
+
+    if (game.in_checkmate()) {
+      status = "Game over, " + moveColor + " is checkmated.";
+    } else if (game.in_draw()) {
+      status = "Game over, drawn position.";
+    } else {
+      status = moveColor + " to move";
+      if (game.in_check()) {
+        status += ", " + moveColor + " is in check.";
+      }
+    }
+
+    statusEl.textContent = status;
+  }
+
+  function initBoard() {
+    board = Chessboard("board", {
+      draggable: true,
+      position: "start",
+      orientation: myColor === "black" ? "black" : "white",
+      onDragStart: onDragStart,
+      onDrop: onDrop,
+      onSnapEnd: onSnapEnd
+    });
+    updateStatus();
+  }
+
+  function connectWS() {
+    ws = new WebSocket("ws://localhost:8000/ws");
+
+    ws.onopen = () => {
+      console.log("Game WS connected");
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "opponent_move") {
+        const move = data.move;
+        game.move(move);
+        board.position(game.fen());
+        updateStatus();
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("Game WS closed");
+    };
+  }
+
+  window.addEventListener("load", () => {
+    initBoard();
+    connectWS();
+  });
+</script>
+</body>
+</html>

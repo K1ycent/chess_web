@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Public Chess - Menu</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #container {
+      text-align: center;
+      background: #222;
+      padding: 30px 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+      margin-top: 10px;
+      width: 200px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+<div id="container">
+  <h1>Public Chess</h1>
+  <p>Enter a username to play online:</p>
+  <input type="text" id="username" placeholder="Username" maxlength="16">
+  <br>
+  <button id="publicBtn">Public Game</button>
+  <div id="status"></div>
+</div>
+
+<script src="client.js"></script>
+</body>
+</html>
